@@ -26,22 +26,14 @@ t_lastaccess.create_column('scraped_at', sqlalchemy.DateTime)
 
 class Form(object):
     action = ""
-    values = list()
-    filename = ""
+    values = []
 
     def toURL(self):
-        url = "" + self.action + "?"
-        beginn = 0
-        for val in self.values:
-            if val[1] != "":
-                if val[0] == "_doc_n1":
-                    filename = val[1]
-                if beginn == 0:
-                    url = url + val[0] + "=" + val[1]
-                    beginn = 1
-                else:
-                    url = url + "&" + val[0] + "=" + val[1]
-        return url
+        parameters = []
+        for key, value in self.values:
+            parameters.append('{}={}'.format(key, value))
+
+        return "{}?{}".format(self.action, '&'.join(parameters))
 
 
 # loads URL and returns
