@@ -115,9 +115,9 @@ def getSession(sid):
                 session['end'] = str(ende)
                 session['date'] = datum[0:10]
                 session['duration'] = str(delta.seconds / 60)
-        if row[0] == "Raum: ":
+        elif row[0] == "Raum: ":
             session['location'] = str(row[1])
-        if row[0] == "Gremien: ":
+        elif row[0] == "Gremien: ":
             session['body'] = str(row[1])
         t_sessions = db['sessions']
         print(session)
