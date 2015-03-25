@@ -104,10 +104,6 @@ def getSession(sid):
     table = soup.find('div', {'class': 'InfoBlock'}).find('table')
     values = parseTable(table)
 
-    datum = ""
-    raum = ""
-    gremium = ""
-
     for row in values:
         if row[0] == "Termin: ":
             datum = row[1]
