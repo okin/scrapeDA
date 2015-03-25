@@ -27,11 +27,8 @@ t_lastaccess.create_column('scraped_at', sqlalchemy.DateTime)
 class Form(object):
 
     def __init__(self, action, values=None):
-        if values is None:
-            values = []
-
         self.action = action
-        self.values = values
+        self.values = values or []
 
     def toURL(self):
         parameters = []
