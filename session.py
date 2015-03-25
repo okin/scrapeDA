@@ -23,7 +23,7 @@ t_lastaccess.create_column('scraped_at', sqlalchemy.DateTime)
 ############################################
 ############################################
 
-class form:
+class Form(object):
     action = ""
     values = list()
     filename = ""
