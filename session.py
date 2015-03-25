@@ -41,13 +41,6 @@ class Form(object):
         return "{}?{}".format(self.action, '&'.join(parameters))
 
 
-# loads URL and returns
-# string getURL(string httpurl)
-def getURL(url):
-    response = requests.get(url)
-    return response.text
-
-
 def getSIDsOfMeetings():
     entry = 0  # set for first run
     SIDs = set()
@@ -55,8 +48,8 @@ def getSIDsOfMeetings():
     while notempty > 0:
         # prevent infinite loop
         notempty = 0
-        table = BeautifulSoup(
-            getURL(starturl + "&entry=" + str(entry - 1))).find('table', {"width": "100%"})
+        site_content = requests.get(starturl + "&entry=" + str(entry - 1)).text
+        table = BeautifulSoup(site_content).find('table', {"width": "100%"})
 
         for inputs in table.find_all('input', {"name": "sid"}):
             if inputs["value"] not in SIDs:
@@ -103,8 +96,10 @@ def getSession(sid):
         return False
     session = dict()
     session['sid'] = sid
-    dataset = getURL(base_url + "sitzungen_top.php?sid=" + sid)
-    soup = BeautifulSoup(dataset)
+
+    target_url = base_url + "sitzungen_top.php"
+    site_content = requests.get(target_url, params={"sid": sid}).text
+    soup = BeautifulSoup(site_content)
     # TITEL
     session['title'] = soup.find('b', {'class': 'Suchueberschrift'}).get_text(
     )
