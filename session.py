@@ -4,8 +4,6 @@ import urllib2
 import sqlalchemy
 from bs4 import BeautifulSoup
 import datetime
-import dateutil.parser
-import code
 
 
 # config
