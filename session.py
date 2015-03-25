@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 import dataset
-import urllib2
+import requests
 import sqlalchemy
 from bs4 import BeautifulSoup
 import datetime
@@ -47,9 +47,8 @@ class Form(object):
 # loads URL and returns
 # string getURL(string httpurl)
 def getURL(url):
-    response = urllib2.urlopen(url)
-    html = response.read()
-    return html
+    response = requests.get(url)
+    return response.text
 
 
 def getSIDsOfMeetings():
@@ -116,7 +115,7 @@ def getSession(sid):
     soup = BeautifulSoup(dataset)
     # TITEL
     session['title'] = soup.find('b', {'class': 'Suchueberschrift'}).get_text(
-    ).encode("utf-8").decode("iso-8859-1")
+    )
     # METADATEN
     table = soup.find('div', {'class': 'InfoBlock'}).find('table')
     values = parseTable(table)
@@ -137,10 +136,9 @@ def getSession(sid):
                 session['date'] = datum[0:10]
                 session['duration'] = str(delta.seconds / 60)
         if row[0] == "Raum: ":
-            session['location'] = str(
-                row[1].encode("utf-8")).decode("iso-8859-1")
+            session['location'] = str(row[1])
         if row[0] == "Gremien: ":
-            session['body'] = str(row[1].encode("utf-8")).decode("iso-8859-1")
+            session['body'] = str(row[1])
         t_sessions = db['sessions']
         print session
         t_sessions.insert(session)
