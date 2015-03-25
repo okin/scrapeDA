@@ -88,15 +88,15 @@ def extractHiddenFormURL(td):
 
 
 def getSession(sid):
+    if not sid:
+        raise RuntimeError("Missing session ID.")
     print(sid)
-    if sid == "":
-        return False
-    session = dict()
-    session['sid'] = sid
 
     target_url = base_url + "sitzungen_top.php"
     site_content = requests.get(target_url, params={"sid": sid}).text
     soup = BeautifulSoup(site_content)
+
+    session = {'sid': sid}
     # TITEL
     session['title'] = soup.find('b', {'class': 'Suchueberschrift'}).get_text(
     )
@@ -141,8 +141,6 @@ def getSession(sid):
         if td > 9 * tr:
             tops = parseTable(tab)
             parseTOPs(sid, tops)
-
-    return True
 
 
 def parseTOPs(sid, tops):
