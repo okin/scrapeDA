@@ -25,8 +25,13 @@ t_lastaccess.create_column('scraped_at', sqlalchemy.DateTime)
 ############################################
 
 class Form(object):
-    action = ""
-    values = []
+
+    def __init__(self, action, values=None):
+        if values is None:
+            values = []
+
+        self.action = action
+        self.values = values
 
     def toURL(self):
         parameters = []
@@ -84,17 +89,12 @@ def parseTable(table):
 
 
 def extractHiddenFormURL(td):
-    f = Form()
-    f.values = list()
-    f.action = td.form['action']
+    form = Form(td.form['action'])
 
-    for val in td.form.find_all('input', {'type': 'hidden'}):
-        f.values.append([val['name'], val['value']])
-    url = base_url + f.toURL()
-    # download
-    # if 'show_pdf.php' in url:
-    # saveFile("","",base_url+f.toURL(),f.values)
-    return url
+    for tag in td.form.find_all('input', {'type': 'hidden'}):
+        form.values.append((tag['name'], tag['value']))
+
+    return '{0}{1}'.format(base_url, form.toURL())
 
 
 def getSession(sid):
