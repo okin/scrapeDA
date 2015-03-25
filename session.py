@@ -92,7 +92,7 @@ def parseTable(table):
 
 
 def extractHiddenFormURL(td):
-    f = form()
+    f = Form()
     f.values = list()
     f.action = td.form['action']
 
