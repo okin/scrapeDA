@@ -187,11 +187,11 @@ def parseTOPs(sid,tops):
 # print sid
 getSession("ni_2006-HFA-7")
 rest = db['sessions'].all()
-dataset.freeze(rest, format='json', filename='/home/md/od/scrapeDA/da-sessions.json')
+dataset.freeze(rest, format='json', filename='da-sessions.json')
 rest = db['sessions'].all()
-dataset.freeze(rest, format='csv', filename='/home/md/od/scrapeDA/da-sessions.csv')
+dataset.freeze(rest, format='csv', filename='da-sessions.csv')
 
 rest = db['agenda'].all()
-dataset.freeze(rest, format='json', filename='/home/md/od/scrapeDA/da-agenda.json')
+dataset.freeze(rest, format='json', filename='da-agenda.json')
 rest = db['agenda'].all()
-dataset.freeze(rest, format='csv', filename='/home/md/od/scrapeDA/da-agenda.csv')
+dataset.freeze(rest, format='csv', filename='da-agenda.csv')
