@@ -132,7 +132,7 @@ def getSession(sid):
         if row[0] == "Gremien: ":
             session['body'] = str(row[1])
         t_sessions = db['sessions']
-        print session
+        print(session)
         t_sessions.insert(session)
 
     # EINLADUNG
