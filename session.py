@@ -55,10 +55,6 @@ def getSIDsOfMeetings():
                 notempty = notempty + 1
     return SIDs
 
-# parseTable(soup table):
-# return table.get_text() als list(list())
-# hidden forms werden als URL-String in die Liste eingefuegt
-
 
 def parseTable(table):
     values = list()
@@ -72,10 +68,6 @@ def parseTable(table):
                 row.append(TDs.get_text())
         values.append(row)
     return values
-
-# string extractHiddenFormURL(soup TD-element)
-# return string
-# wandelt hidden form in einem TD-Element in eine post-URL um
 
 
 def extractHiddenFormURL(td):
@@ -97,7 +89,6 @@ def getSession(sid):
     soup = BeautifulSoup(site_content)
 
     session = {'sid': sid}
-    # TITEL
     session['title'] = soup.find('b', {'class': 'Suchueberschrift'}).get_text(
     )
     # METADATEN
@@ -122,14 +113,6 @@ def getSession(sid):
         t_sessions = db['sessions']
         print(session)
         t_sessions.insert(session)
-
-    # EINLADUNG
-# infos= soup.find_all('div', {'class':'InfoBlock'})
-# if len(infos) > 1:
-        #
-        # einladung_url= ""#extractHiddenFormURL(infos[2])
-
-    tas = soup.find_all('table')
 
     for tab in soup.find_all('table'):
         tr = int(len(tab.find_all('tr')))
