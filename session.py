@@ -174,7 +174,7 @@ def parseTOPs(sid,tops):
     jahr= top[4][len("Vorlage: ")+1:len("Vorlage: ")+5]
     vorlnr= top[4][len("Vorlage: ")+6:len("Vorlage: ")+10]
    gesamtID= top[4][10:top[4].index(',')]
-#(SITZUNG_SID,a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,jahr,vorlage,VORLAGEID)
+
   tab = db['agenda']
   tab.insert(dict(sid=sid,status=top[0],topnumber=top[1],column3=top[2],details_link=top[3],title_full=top[4],document_link=top[5],attachment_link=top[6],decision_link=top[7],column9=top[8],column10=top[9],year=jahr,billnumber=vorlnr,billid=gesamtID,position=count))
   
