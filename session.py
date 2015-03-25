@@ -13,7 +13,6 @@ starturl=base_url+"recherche.php?suchbegriffe=&select_gremium=&datum_von="+scrap
 
 # setup DB
 db = dataset.connect('sqlite:///'+db_file)
-t_sessions = db['sessions']
 t_lastaccess = db['lastscrape']
 t_lastaccess.create_column('scraped_at', sqlalchemy.DateTime)
 
@@ -138,9 +137,10 @@ def getSession(sid):
    session['location'] = str(row[1].encode("utf-8")).decode("iso-8859-1")
   if row[0] =="Gremien: ":
    session['body'] = str(row[1].encode("utf-8")).decode("iso-8859-1")
-  
+  t_sessions = db['sessions']
+  print session
   t_sessions.insert(session)
- # code.interact(local=locals())
+
  #EINLADUNG
 # infos= soup.find_all('div', {'class':'InfoBlock'})
 #if len(infos) > 1:
@@ -175,13 +175,23 @@ def parseTOPs(sid,tops):
     vorlnr= top[4][len("Vorlage: ")+6:len("Vorlage: ")+10]
    gesamtID= top[4][10:top[4].index(',')]
 #(SITZUNG_SID,a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,jahr,vorlage,VORLAGEID)
-  data = dict(sid=sid,status=top[0],topnumber=top[1],column3=top[2],details_link=top[3],title_full=top[4],document_link=top[5],attachment_link=top[6],decision_link=top[7],column9=top[8],column10=top[9],year=jahr,bill_number=vorlnr,bill_id=gesamtID,position=count)
-  #todo store data
+  tab = db['agenda']
+  tab.insert(dict(sid=sid,status=top[0],topnumber=top[1],column3=top[2],details_link=top[3],title_full=top[4],document_link=top[5],attachment_link=top[6],decision_link=top[7],column9=top[8],column10=top[9],year=jahr,billnumber=vorlnr,billid=gesamtID,position=count))
+  
 
 #######################
 
 
 
-for sid in getSIDsOfMeetings():
- print sid
- getSession("ni_2006-HFA-7")
+#for sid in getSIDsOfMeetings():
+# print sid
+getSession("ni_2006-HFA-7")
+rest = db['sessions'].all()
+dataset.freeze(rest, format='json', filename='/home/md/od/scrapeDA/da-sessions.json')
+rest = db['sessions'].all()
+dataset.freeze(rest, format='csv', filename='/home/md/od/scrapeDA/da-sessions.csv')
+
+rest = db['agenda'].all()
+dataset.freeze(rest, format='json', filename='/home/md/od/scrapeDA/da-agenda.json')
+rest = db['agenda'].all()
+dataset.freeze(rest, format='csv', filename='/home/md/od/scrapeDA/da-agenda.csv')
