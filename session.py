@@ -3,7 +3,6 @@
 
 import datetime
 from urllib.parse import urljoin
-
 import dataset
 import requests
 import sqlalchemy
@@ -11,7 +10,6 @@ from bs4 import BeautifulSoup
 
 
 class Form(object):
-
     def __init__(self, action, values=None):
         self.action = action
         self.values = values or []
@@ -25,16 +23,18 @@ class Form(object):
 
 
 class RubinScraper(object):
-    def __init__(self, db_connection_string, base_url='http://darmstadt.more-rubin1.de/'):
-        self.base_url = base_url
+    def __init__(self, db_connection_string, domain='darmstadt'):
+        self.base_url = 'http://'+domain+'.more-rubin1.de/'
 
-        self.db = dataset.connect('sqlite:///darmstadt.db')
-        t_lastaccess = self.db['lastscrape']
+        self.db = dataset.connect(db_connection_string)
+        t_lastaccess = self.db['updates']
         t_lastaccess.create_column('scraped_at', sqlalchemy.DateTime)
 
     def scrape(self):
         for sid in self.getSIDsOfMeetings():
             self.getSession(sid)
+
+
 
     def getSIDsOfMeetings(self):
         # TODO: the dates should be automatically generated
@@ -142,15 +142,18 @@ class RubinScraper(object):
                 if '[Vorlage: SV-' in top[4]:
                     jahr = top[4][len("Vorlage: SV-") + 1:len("Vorlage: SV-") + 5]
                     vorlnr = top[4][
-                        len("Vorlage: SV-") + 6:len("Vorlage: SV-") + 10]
+                             len("Vorlage: SV-") + 6:len("Vorlage: SV-") + 10]
                 else:
                     jahr = top[4][len("Vorlage: ") + 1:len("Vorlage: ") + 5]
                     vorlnr = top[4][len("Vorlage: ") + 6:len("Vorlage: ") + 10]
                 gesamtID = top[4][10:top[4].index(',')]
 
             tab = self.db['agenda']
-            tab.insert(dict(sid=sid, status=top[0], topnumber=top[1], column3=top[2], details_link=top[3], title_full=top[4], document_link=top[
-                       5], attachment_link=top[6], decision_link=top[7], column9=top[8], column10=top[9], year=jahr, billnumber=vorlnr, billid=gesamtID, position=count))
+            tab.insert(
+                dict(sid=sid, status=top[0], topnumber=top[1], column3=top[2], details_link=top[3], title_full=top[4],
+                     document_link=top[
+                         5], attachment_link=top[6], decision_link=top[7], column9=top[8], column10=top[9], year=jahr,
+                     billnumber=vorlnr, billid=gesamtID, position=count))
 
 
 if __name__ == '__main__':
