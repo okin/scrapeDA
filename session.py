@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import datetime
-from urllib.parse import urljoin
 
 import dataset
 import requests
@@ -40,20 +39,20 @@ class RubinScraper(object):
         # TODO: the dates should be automatically generated
         scrape_from = '01.01.2006'
         scrape_to = '31.01.2006'
-        search_parameters = ("recherche.php?suchbegriffe=&select_gremium=&"
-                             "datum_von={start}&datum_bis={end}&"
-                             "startsuche=Suche+starten")
-        search_parameters = search_parameters.format(start=scrape_from,
-                                                     end=scrape_to)
 
-        starturl = urljoin(self.base_url, search_parameters)
+        url = "{0}{1}".format(self.base_url, 'recherche.php')
+        params = {'suchbegriffe': '', 'select_gremium': '',
+                  'datum_von': scrape_from, 'datum_bis': scrape_to,
+                  'startsuche': 'Suche+starten'}
+
         entry = 0  # set for first run
         SIDs = set()
         notempty = 1
         while notempty > 0:
             # prevent infinite loop
             notempty = 0
-            site_content = requests.get(starturl + "&entry=" + str(entry - 1)).text
+            params['entry'] = entry - 1
+            site_content = requests.get(url, params=params).text
             table = BeautifulSoup(site_content).find('table', {"width": "100%"})
 
             for inputs in table.find_all('input', {"name": "sid"}):
@@ -73,8 +72,8 @@ class RubinScraper(object):
             raise RuntimeError("Missing session ID.")
         print(sid)
 
-        target_url = urljoin(self.base_url, "sitzungen_top.php")
-        site_content = requests.get(target_url, params={"sid": sid}).text
+        url = "{}{}".format(self.base_url, "sitzungen_top.php")
+        site_content = requests.get(url, params={"sid": sid}).text
         soup = BeautifulSoup(site_content)
 
         session = {'sid': sid}
@@ -129,7 +128,7 @@ class RubinScraper(object):
         for tag in td.form.find_all('input', {'type': 'hidden'}):
             form.values.append((tag['name'], tag['value']))
 
-        return urljoin(self.base_url, form.toURL())
+        return "{}{}".format(self.base_url, form.toURL())
 
     def parseTOPs(self, sid, tops):
         count = 0
