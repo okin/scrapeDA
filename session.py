@@ -13,10 +13,6 @@ from bs4 import BeautifulSoup
 # config
 base_url = 'http://darmstadt.more-rubin1.de/'
 db_file = 'darmstadt.db'
-scrape_from = '01.01.2006'
-scrape_to = '31.01.2006'
-starturl = urljoin(base_url, "recherche.php?suchbegriffe=&select_gremium=&datum_von=" + \
-    scrape_from + "&datum_bis=" + scrape_to + "&startsuche=Suche+starten")
 
 # setup DB
 db = dataset.connect('sqlite:///' + db_file)
@@ -42,6 +38,15 @@ class Form(object):
 
 
 def getSIDsOfMeetings():
+    scrape_from = '01.01.2006'
+    scrape_to = '31.01.2006'
+    search_parameters = ("recherche.php?suchbegriffe=&select_gremium=&"
+                         "datum_von={start}&datum_bis={end}&"
+                         "startsuche=Suche+starten")
+    search_parameters = search_parameters.format(start=scrape_from,
+                                                 end=scrape_to)
+
+    starturl = urljoin(base_url, search_parameters)
     entry = 0  # set for first run
     SIDs = set()
     notempty = 1
