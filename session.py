@@ -157,9 +157,10 @@ def parseTOPs(sid, tops):
 
 
 if __name__ == '__main__':
-    # for sid in getSIDsOfMeetings():
-    # print sid
-    getSession("ni_2006-HFA-7")
+    for sid in getSIDsOfMeetings():
+        getSession(sid)
+
+    # getSession("ni_2006-HFA-7")
     rest = db['sessions'].all()
     dataset.freeze(rest, format='json', filename='da-sessions.json')
     rest = db['sessions'].all()
