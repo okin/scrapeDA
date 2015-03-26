@@ -57,11 +57,12 @@ def getSIDsOfMeetings():
         table = BeautifulSoup(site_content).find('table', {"width": "100%"})
 
         for inputs in table.find_all('input', {"name": "sid"}):
-            if inputs["value"] not in SIDs:
+            sid = inputs["value"]
+            if sid not in SIDs:
                 SIDs.add(inputs["value"])
                 entry = entry + 1
                 notempty = notempty + 1
-    return SIDs
+                yield sid
 
 
 def getSession(sid):
