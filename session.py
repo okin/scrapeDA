@@ -53,7 +53,7 @@ def getSIDsOfMeetings():
 
         for inputs in table.find_all('input', {"name": "sid"}):
             if inputs["value"] not in SIDs:
-                SIDs.add(inputs["value"].encode("utf-8").decode("iso-8859-1"))
+                SIDs.add(inputs["value"])
                 entry = entry + 1
                 notempty = notempty + 1
     return SIDs
