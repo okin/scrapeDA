@@ -1,10 +1,13 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
+
+import datetime
+from urllib.parse import urljoin
+
 import dataset
 import requests
 import sqlalchemy
 from bs4 import BeautifulSoup
-import datetime
 
 
 # config
@@ -12,8 +15,8 @@ base_url = 'http://darmstadt.more-rubin1.de/'
 db_file = 'darmstadt.db'
 scrape_from = '01.01.2006'
 scrape_to = '31.01.2006'
-starturl = base_url + "recherche.php?suchbegriffe=&select_gremium=&datum_von=" + \
-    scrape_from + "&datum_bis=" + scrape_to + "&startsuche=Suche+starten"
+starturl = urljoin(base_url, "recherche.php?suchbegriffe=&select_gremium=&datum_von=" + \
+    scrape_from + "&datum_bis=" + scrape_to + "&startsuche=Suche+starten")
 
 # setup DB
 db = dataset.connect('sqlite:///' + db_file)
@@ -76,7 +79,7 @@ def extractHiddenFormURL(td):
     for tag in td.form.find_all('input', {'type': 'hidden'}):
         form.values.append((tag['name'], tag['value']))
 
-    return '{0}{1}'.format(base_url, form.toURL())
+    return urljoin(base_url, form.toURL())
 
 
 def getSession(sid):
@@ -84,7 +87,7 @@ def getSession(sid):
         raise RuntimeError("Missing session ID.")
     print(sid)
 
-    target_url = base_url + "sitzungen_top.php"
+    target_url = urljoin(base_url, "sitzungen_top.php")
     site_content = requests.get(target_url, params={"sid": sid}).text
     soup = BeautifulSoup(site_content)
 
