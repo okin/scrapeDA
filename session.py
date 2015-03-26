@@ -34,7 +34,23 @@ class RubinScraper(object):
         for sid in self.getSIDsOfMeetings():
             self.getSession(sid)
 
+    def hasWebsiteChanged(self):
 
+        html = requests.get(self.base_url).text
+        psoup = BeautifulSoup(html)
+        text = psoup.find('div', {'class': 'aktualisierung'}).get_text()
+        last_website_update = text[len('Letzte Aktualisierung am:'):]
+        websitedatetime = datetime.datetime.strptime(last_website_update,"%d.%m.%Y, %H:%M")
+        db_datetime=""
+        query = self.db.query("SELECT max(scraped_at) as lastaccess from updates")
+        for row in query:
+            db_datetime = row['lastaccess']
+        self.db['updates'].insert(dict(scraped_at=datetime.datetime.now()))
+        if db_datetime is None:
+            return True
+        if datetime.datetime.strptime(db_datetime[:16],"%Y-%m-%d %H:%M") < websitedatetime:
+            return True
+        return False
 
     def getSIDsOfMeetings(self):
         # TODO: the dates should be automatically generated
@@ -159,8 +175,6 @@ class RubinScraper(object):
 if __name__ == '__main__':
     scraper = RubinScraper('sqlite:///darmstadt.db')
     scraper.scrape()
-
-    scraper.getSession("ni_2006-HFA-7")
 
     rest = scraper.db['sessions'].all()
     dataset.freeze(rest, format='json', filename='da-sessions.json')
