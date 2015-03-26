@@ -59,29 +59,6 @@ def getSIDsOfMeetings():
     return SIDs
 
 
-def parseTable(table):
-    values = list()
-    for TRs in table.find_all('tr'):
-        row = list()
-        for TDs in TRs.find_all('td'):
-            if TDs.form != None:
-                url = extractHiddenFormURL(TDs)
-                row.append(url)
-            else:
-                row.append(TDs.get_text())
-        values.append(row)
-    return values
-
-
-def extractHiddenFormURL(td):
-    form = Form(td.form['action'])
-
-    for tag in td.form.find_all('input', {'type': 'hidden'}):
-        form.values.append((tag['name'], tag['value']))
-
-    return urljoin(base_url, form.toURL())
-
-
 def getSession(sid):
     if not sid:
         raise RuntimeError("Missing session ID.")
@@ -123,6 +100,29 @@ def getSession(sid):
         if td > 9 * tr:
             tops = parseTable(tab)
             parseTOPs(sid, tops)
+
+
+def parseTable(table):
+    values = list()
+    for TRs in table.find_all('tr'):
+        row = list()
+        for TDs in TRs.find_all('td'):
+            if TDs.form != None:
+                url = extractHiddenFormURL(TDs)
+                row.append(url)
+            else:
+                row.append(TDs.get_text())
+        values.append(row)
+    return values
+
+
+def extractHiddenFormURL(td):
+    form = Form(td.form['action'])
+
+    for tag in td.form.find_all('input', {'type': 'hidden'}):
+        form.values.append((tag['name'], tag['value']))
+
+    return urljoin(base_url, form.toURL())
 
 
 def parseTOPs(sid, tops):
