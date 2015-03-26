@@ -7,6 +7,7 @@ import dataset
 import requests
 import sqlalchemy
 from bs4 import BeautifulSoup
+from requests.compat import urljoin
 
 
 class Form(object):
@@ -41,7 +42,7 @@ class RubinScraper(object):
         scrape_from = '01.01.2006'
         scrape_to = '31.01.2006'
 
-        url = "{0}{1}".format(self.base_url, 'recherche.php')
+        url = urljoin(self.base_url, 'recherche.php')
         params = {'suchbegriffe': '', 'select_gremium': '',
                   'datum_von': scrape_from, 'datum_bis': scrape_to,
                   'startsuche': 'Suche+starten'}
@@ -73,13 +74,12 @@ class RubinScraper(object):
             raise RuntimeError("Missing session ID.")
         print(sid)
 
-        url = "{}{}".format(self.base_url, "sitzungen_top.php")
+        url = urljoin(self.base_url, "sitzungen_top.php")
         site_content = requests.get(url, params={"sid": sid}).text
         soup = BeautifulSoup(site_content)
 
         session = {'sid': sid}
-        session['title'] = soup.find('b', {'class': 'Suchueberschrift'}).get_text(
-        )
+        session['title'] = soup.find('b', {'class': 'Suchueberschrift'}).get_text()
         # METADATEN
         table = soup.find('div', {'class': 'InfoBlock'}).find('table')
         values = self.parseTable(table)
@@ -129,7 +129,7 @@ class RubinScraper(object):
         for tag in td.form.find_all('input', {'type': 'hidden'}):
             form.values.append((tag['name'], tag['value']))
 
-        return "{}{}".format(self.base_url, form.toURL())
+        return urljoin(self.base_url, form.toURL())
 
     def parseTOPs(self, sid, tops):
         count = 0
