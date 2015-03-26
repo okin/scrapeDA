@@ -9,13 +9,10 @@ import requests
 import sqlalchemy
 from bs4 import BeautifulSoup
 
-
-# config
 base_url = 'http://darmstadt.more-rubin1.de/'
-db_file = 'darmstadt.db'
 
 # setup DB
-db = dataset.connect('sqlite:///' + db_file)
+db = dataset.connect('sqlite:///darmstadt.db')
 t_lastaccess = db['lastscrape']
 t_lastaccess.create_column('scraped_at', sqlalchemy.DateTime)
 
