@@ -55,15 +55,15 @@ class RubinScraper(object):
 
 
     def scrapeAttachmentsPage(self, sessionID, agenda_item_id, attachmentsPageURL):
-        print("scrape Attachment "+attachmentsPageURL)
+        print("scrape Attachment " + attachmentsPageURL)
         html = requests.get(attachmentsPageURL).text
         soup = BeautifulSoup(html)
         txt = soup.get_text()
 
         if "Auf die Anlage konnte nicht zugegriffen werden oder Sie existiert nicht mehr." in txt:
-            print("Zu TOP "+agenda_item_id+" fehlt mindestens eine Anlage")
+            print("Zu TOP " + agenda_item_id + " fehlt mindestens eine Anlage")
             errortable = self.db['404attachments']
-            errortable.insert(dict(agenda_item_id= agenda_item_id, attachmentsPageURL= attachmentsPageURL))
+            errortable.insert(dict(agenda_item_id=agenda_item_id, attachmentsPageURL=attachmentsPageURL))
 
         for forms in soup.find_all('form'):
             title = forms.get_text()
@@ -71,11 +71,12 @@ class RubinScraper(object):
             for val in forms.find_all('input', {'type': 'hidden'}):
                 values.append([val['name'], val['value']])
 
-            form = Form(forms['action'],values)
+            form = Form(forms['action'], values)
             url = self.base_url + form.toURL()
 
             tab = self.db['attachments']
-            tab.insert(dict(sid= sessionID, agenda_item_id= agenda_item_id, attachment_title= title, attachment_file_url= url))
+            tab.insert(
+                dict(sid=sessionID, agenda_item_id=agenda_item_id, attachment_title=title, attachment_file_url=url))
 
 
     def getSIDsOfMeetings(self):
@@ -129,8 +130,8 @@ class RubinScraper(object):
             if row[0] == "Termin: ":
                 datum = row[1]
                 if len(datum) == len("29.11.2006, 15:00 Uhr - 15:45 Uhr"):
-                    beginn = datetime.datetime.strptime(datum[12:17], "%H:%M")
-                    ende = datetime.datetime.strptime(datum[24:29], "%H:%M")
+                    beginn = datetime.datetime.strptime(datum[:10]+" "+datum[12:17], "%d.%m.%Y %H:%M")
+                    ende = datetime.datetime.strptime(datum[:10]+" "+datum[24:29], "%d.%m.%Y %H:%M")
                     delta = ende - beginn
                     session['start'] = str(beginn)
                     session['end'] = str(ende)
@@ -190,14 +191,15 @@ class RubinScraper(object):
                 gesamtID = top[4][10:top[4].index(',')]
 
             tab = self.db['agenda']
-            attachment_link=top[6]
+            attachment_link = top[6]
             tab.insert(
                 dict(sid=sid, status=top[0], topnumber=top[1], column3=top[2], details_link=top[3], title_full=top[4],
                      document_link=top[
-                         5], attachment_link=attachment_link, decision_link=top[7], column9=top[8], column10=top[9], year=jahr,
+                         5], attachment_link=attachment_link, decision_link=top[7], column9=top[8], column10=top[9],
+                     year=jahr,
                      billnumber=vorlnr, billid=gesamtID, position=count))
             if "http://" in attachment_link:
-                self.scrapeAttachmentsPage(sid,gesamtID,attachment_link)
+                self.scrapeAttachmentsPage(sid, gesamtID, attachment_link)
 
 
 if __name__ == '__main__':
