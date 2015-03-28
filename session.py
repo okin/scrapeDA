@@ -25,7 +25,7 @@ class Form(object):
 
 class RubinScraper(object):
     def __init__(self, db_connection_string, domain='darmstadt'):
-        self.base_url = 'http://' + domain + '.more-rubin1.de/'
+        self.base_url = 'http://{}.more-rubin1.de/'.format(domain)
 
         self.db = dataset.connect(db_connection_string)
         t_lastaccess = self.db['updates']
