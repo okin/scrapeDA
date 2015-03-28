@@ -157,7 +157,7 @@ class RubinScraper(object):
         for TRs in table.find_all('tr'):
             row = list()
             for TDs in TRs.find_all('td'):
-                if TDs.form != None:
+                if TDs.form is not None:
                     url = self.extractHiddenFormURL(TDs)
                     row.append(url)
                 else:
