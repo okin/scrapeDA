@@ -191,12 +191,14 @@ class RubinScraper(object):
 
             tab = self.db['agenda']
             attachment_link = top[6]
-            tab.insert(
-                dict(sid=sid, status=top[0], topnumber=top[1], column3=top[2], details_link=top[3], title_full=top[4],
-                     document_link=top[
-                         5], attachment_link=attachment_link, decision_link=top[7], column9=top[8], column10=top[9],
-                     year=jahr,
-                     billnumber=vorlnr, billid=gesamtID, position=count))
+            tab.insert({'sid': sid, 'status': top[0], 'topnumber': top[1],
+                        'column3': top[2], 'details_link': top[3],
+                        'title_full': top[4], 'document_link': top[5],
+                        'attachment_link': attachment_link,
+                        'decision_link': top[7], 'column9': top[8],
+                        'column10': top[9], 'year': jahr, 'billnumber': vorlnr,
+                        'billid': gesamtID, 'position': count})
+
             if "http://" in attachment_link:
                 self.scrapeAttachmentsPage(sid, gesamtID, attachment_link)
 
