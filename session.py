@@ -23,17 +23,64 @@ class Form(object):
         return "{}?{}".format(self.action, '&'.join(parameters))
 
 
-class RubinScraper(object):
-    def __init__(self, db_connection_string, domain='darmstadt', year=2006):
-        self.base_url = 'http://{}.more-rubin1.de/'.format(domain)
+class SessionFinder(object):
+    """Find possible sessions."""
+
+    def __init__(self, year, domain='darmstadt'):
         self.year = year
+        self.base_url = 'http://{}.more-rubin1.de/'.format(domain)
+
+    def __iter__(self):
+        def iterator():
+            sessions = set()
+            for session in self.getSIDsOfMeetings():
+                if session not in sessions:
+                    sessions.add(session)
+                    yield session
+
+        return iterator()
+
+    def getSIDsOfMeetings(self):
+        scrape_from = '01.01.{}'.format(self.year)
+        scrape_to = '31.01.{}'.format(self.year)
+
+        url = urljoin(self.base_url, 'recherche.php')
+        params = {'suchbegriffe': '', 'select_gremium': '',
+                  'datum_von': scrape_from, 'datum_bis': scrape_to,
+                  'startsuche': 'Suche+starten'}
+
+        entry = 0  # set for first run
+        SIDs = set()
+        notempty = 1
+        while notempty > 0:
+            # prevent infinite loop
+            notempty = 0
+            params['entry'] = entry - 1
+            site_content = requests.get(url, params=params).text
+            table = BeautifulSoup(site_content).find('table', {"width": "100%"})
+
+            for inputs in table.find_all('input', {"name": "sid"}):
+                sid = inputs["value"]
+                if not sid:
+                    continue
+
+                if sid not in SIDs:
+                    SIDs.add(inputs["value"])
+                    entry = entry + 1
+                    notempty = notempty + 1
+                    yield sid
+
+
+class RubinScraper(object):
+    def __init__(self, db_connection_string, domain='darmstadt'):
+        self.base_url = 'http://{}.more-rubin1.de/'.format(domain)
 
         self.db = dataset.connect(db_connection_string)
         t_lastaccess = self.db['updates']
         t_lastaccess.create_column('scraped_at', sqlalchemy.DateTime)
 
-    def scrape(self):
-        for sid in self.getSIDsOfMeetings():
+    def scrape(self, sessions):
+        for sid in sessions:
             self.getSession(sid)
 
     def hasWebsiteChanged(self):
@@ -75,38 +122,8 @@ class RubinScraper(object):
             url = self.base_url + form.toURL()
 
             tab = self.db['attachments']
-            tab.insert(
-                dict(sid=sessionID, agenda_item_id=agenda_item_id, attachment_title=title, attachment_file_url=url))
-
-    def getSIDsOfMeetings(self):
-        scrape_from = '01.01.{}'.format(self.year)
-        scrape_to = '31.01.{}'.format(self.year)
-
-        url = urljoin(self.base_url, 'recherche.php')
-        params = {'suchbegriffe': '', 'select_gremium': '',
-                  'datum_von': scrape_from, 'datum_bis': scrape_to,
-                  'startsuche': 'Suche+starten'}
-
-        entry = 0  # set for first run
-        SIDs = set()
-        notempty = 1
-        while notempty > 0:
-            # prevent infinite loop
-            notempty = 0
-            params['entry'] = entry - 1
-            site_content = requests.get(url, params=params).text
-            table = BeautifulSoup(site_content).find('table', {"width": "100%"})
-
-            for inputs in table.find_all('input', {"name": "sid"}):
-                sid = inputs["value"]
-                if not sid:
-                    continue
-
-                if sid not in SIDs:
-                    SIDs.add(inputs["value"])
-                    entry = entry + 1
-                    notempty = notempty + 1
-                    yield sid
+            tab.insert({'sid': sessionID, 'agenda_item_id': agenda_item_id,
+                        'attachment_title': title, 'attachment_file_url': url})
 
     def getSession(self, sid):
         if not sid:
@@ -205,8 +222,9 @@ class RubinScraper(object):
 
 
 if __name__ == '__main__':
+    sessionFinder = SessionFinder(2006)
     scraper = RubinScraper('sqlite:///darmstadt.db')
-    scraper.scrape()
+    scraper.scrape(sessionFinder)
 
     rest = scraper.db['sessions'].all()
     dataset.freeze(rest, format='json', filename='da-sessions.json')
