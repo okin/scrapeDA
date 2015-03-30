@@ -171,6 +171,10 @@ class RubinScraper(object):
 
     def parseTOPs(self, sid, tops):
         count = 0
+        vorlagen_template = "Vorlage: SV-"
+        first_length = len(vorlagen_template)
+        second_length = len("Vorlage: ")
+
         for top in tops:
             count = count + 1
             vorlnr = ""
@@ -178,12 +182,11 @@ class RubinScraper(object):
             jahr = ""
             if '[Vorlage: ' in top[4]:
                 if '[Vorlage: SV-' in top[4]:
-                    jahr = top[4][len("Vorlage: SV-") + 1:len("Vorlage: SV-") + 5]
-                    vorlnr = top[4][
-                             len("Vorlage: SV-") + 6:len("Vorlage: SV-") + 10]
+                    jahr = top[4][first_length + 1:first_length + 5]
+                    vorlnr = top[4][first_length + 6:first_length + 10]
                 else:
-                    jahr = top[4][len("Vorlage: ") + 1:len("Vorlage: ") + 5]
-                    vorlnr = top[4][len("Vorlage: ") + 6:len("Vorlage: ") + 10]
+                    jahr = top[4][second_length + 1:second_length + 5]
+                    vorlnr = top[4][second_length + 6:second_length + 10]
                 gesamtID = top[4][10:top[4].index(',')]
 
             tab = self.db['agenda']
