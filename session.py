@@ -46,7 +46,7 @@ class RubinScraper(object):
         query = self.db.query("SELECT max(scraped_at) as lastaccess from updates")
         for row in query:
             db_datetime = row['lastaccess']
-        self.db['updates'].insert(dict(scraped_at=datetime.datetime.now()))
+        self.db['updates'].insert({'scraped_at': datetime.datetime.now()})
         if db_datetime is None:
             return True
         if datetime.datetime.strptime(db_datetime[:16], "%Y-%m-%d %H:%M") < websitedatetime:
@@ -62,11 +62,12 @@ class RubinScraper(object):
         if "Auf die Anlage konnte nicht zugegriffen werden oder Sie existiert nicht mehr." in txt:
             print("Zu TOP " + agenda_item_id + " fehlt mindestens eine Anlage")
             errortable = self.db['404attachments']
-            errortable.insert(dict(agenda_item_id=agenda_item_id, attachmentsPageURL=attachmentsPageURL))
+            errortable.insert({'agenda_item_id': agenda_item_id,
+                               'attachmentsPageURL': attachmentsPageURL})
 
         for forms in soup.find_all('form'):
             title = forms.get_text()
-            values = list()
+            values = []
             for val in forms.find_all('input', {'type': 'hidden'}):
                 values.append([val['name'], val['value']])
 
@@ -149,9 +150,9 @@ class RubinScraper(object):
                 self.parseTOPs(sid, tops)
 
     def parseTable(self, table):
-        values = list()
+        values = []
         for TRs in table.find_all('tr'):
-            row = list()
+            row = []
             for TDs in TRs.find_all('td'):
                 if TDs.form is not None:
                     url = self.extractHiddenFormURL(TDs)
