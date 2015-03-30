@@ -23,66 +23,26 @@ class Form(object):
         return "{}?{}".format(self.action, '&'.join(parameters))
 
 
-class RubinScraper(object):
-    def __init__(self, db_connection_string, domain='darmstadt'):
+class SessionFinder(object):
+    """Find possible sessions."""
+
+    def __init__(self, year, domain='darmstadt'):
+        self.year = year
         self.base_url = 'http://{}.more-rubin1.de/'.format(domain)
 
-        self.db = dataset.connect(db_connection_string)
-        t_lastaccess = self.db['updates']
-        t_lastaccess.create_column('scraped_at', sqlalchemy.DateTime)
+    def __iter__(self):
+        def iterator():
+            sessions = set()
+            for session in self.getSIDsOfMeetings():
+                if session not in sessions:
+                    sessions.add(session)
+                    yield session
 
-    def scrape(self):
-        for sid in self.getSIDsOfMeetings():
-            self.getSession(sid)
-
-    def hasWebsiteChanged(self):
-
-        html = requests.get(self.base_url).text
-        psoup = BeautifulSoup(html)
-        text = psoup.find('div', {'class': 'aktualisierung'}).get_text()
-        last_website_update = text[len('Letzte Aktualisierung am:'):]
-        websitedatetime = datetime.datetime.strptime(last_website_update, "%d.%m.%Y, %H:%M")
-        db_datetime = ""
-        query = self.db.query("SELECT max(scraped_at) as lastaccess from updates")
-        for row in query:
-            db_datetime = row['lastaccess']
-        self.db['updates'].insert(dict(scraped_at=datetime.datetime.now()))
-        if db_datetime is None:
-            return True
-        if datetime.datetime.strptime(db_datetime[:16], "%Y-%m-%d %H:%M") < websitedatetime:
-            return True
-        return False
-
-
-    def scrapeAttachmentsPage(self, sessionID, agenda_item_id, attachmentsPageURL):
-        print("scrape Attachment " + attachmentsPageURL)
-        html = requests.get(attachmentsPageURL).text
-        soup = BeautifulSoup(html)
-        txt = soup.get_text()
-
-        if "Auf die Anlage konnte nicht zugegriffen werden oder Sie existiert nicht mehr." in txt:
-            print("Zu TOP " + agenda_item_id + " fehlt mindestens eine Anlage")
-            errortable = self.db['404attachments']
-            errortable.insert(dict(agenda_item_id=agenda_item_id, attachmentsPageURL=attachmentsPageURL))
-
-        for forms in soup.find_all('form'):
-            title = forms.get_text()
-            values = list()
-            for val in forms.find_all('input', {'type': 'hidden'}):
-                values.append([val['name'], val['value']])
-
-            form = Form(forms['action'], values)
-            url = self.base_url + form.toURL()
-
-            tab = self.db['attachments']
-            tab.insert(
-                dict(sid=sessionID, agenda_item_id=agenda_item_id, attachment_title=title, attachment_file_url=url))
-
+        return iterator()
 
     def getSIDsOfMeetings(self):
-        # TODO: the dates should be automatically generated
-        scrape_from = '01.01.2006'
-        scrape_to = '31.01.2006'
+        scrape_from = '01.01.{}'.format(self.year)
+        scrape_to = '31.01.{}'.format(self.year)
 
         url = urljoin(self.base_url, 'recherche.php')
         params = {'suchbegriffe': '', 'select_gremium': '',
@@ -110,6 +70,60 @@ class RubinScraper(object):
                     notempty = notempty + 1
                     yield sid
 
+
+class RubinScraper(object):
+    def __init__(self, db_connection_string, domain='darmstadt'):
+        self.base_url = 'http://{}.more-rubin1.de/'.format(domain)
+
+        self.db = dataset.connect(db_connection_string)
+        t_lastaccess = self.db['updates']
+        t_lastaccess.create_column('scraped_at', sqlalchemy.DateTime)
+
+    def scrape(self, sessions):
+        for sid in sessions:
+            self.getSession(sid)
+
+    def hasWebsiteChanged(self):
+        html = requests.get(self.base_url).text
+        psoup = BeautifulSoup(html)
+        text = psoup.find('div', {'class': 'aktualisierung'}).get_text()
+        last_website_update = text[len('Letzte Aktualisierung am:'):]
+        websitedatetime = datetime.datetime.strptime(last_website_update, "%d.%m.%Y, %H:%M")
+        db_datetime = ""
+        query = self.db.query("SELECT max(scraped_at) as lastaccess from updates")
+        for row in query:
+            db_datetime = row['lastaccess']
+        self.db['updates'].insert({'scraped_at': datetime.datetime.now()})
+        if db_datetime is None:
+            return True
+        if datetime.datetime.strptime(db_datetime[:16], "%Y-%m-%d %H:%M") < websitedatetime:
+            return True
+        return False
+
+    def scrapeAttachmentsPage(self, sessionID, agenda_item_id, attachmentsPageURL):
+        print("scrape Attachment " + attachmentsPageURL)
+        html = requests.get(attachmentsPageURL).text
+        soup = BeautifulSoup(html)
+        txt = soup.get_text()
+
+        if "Auf die Anlage konnte nicht zugegriffen werden oder Sie existiert nicht mehr." in txt:
+            print("Zu TOP " + agenda_item_id + " fehlt mindestens eine Anlage")
+            errortable = self.db['404attachments']
+            errortable.insert({'agenda_item_id': agenda_item_id,
+                               'attachmentsPageURL': attachmentsPageURL})
+
+        for forms in soup.find_all('form'):
+            title = forms.get_text()
+            values = []
+            for val in forms.find_all('input', {'type': 'hidden'}):
+                values.append([val['name'], val['value']])
+
+            form = Form(forms['action'], values)
+            url = self.base_url + form.toURL()
+
+            tab = self.db['attachments']
+            tab.insert({'sid': sessionID, 'agenda_item_id': agenda_item_id,
+                        'attachment_title': title, 'attachment_file_url': url})
 
     def getSession(self, sid):
         if not sid:
@@ -153,11 +167,11 @@ class RubinScraper(object):
                 self.parseTOPs(sid, tops)
 
     def parseTable(self, table):
-        values = list()
+        values = []
         for TRs in table.find_all('tr'):
-            row = list()
+            row = []
             for TDs in TRs.find_all('td'):
-                if TDs.form != None:
+                if TDs.form is not None:
                     url = self.extractHiddenFormURL(TDs)
                     row.append(url)
                 else:
@@ -175,6 +189,10 @@ class RubinScraper(object):
 
     def parseTOPs(self, sid, tops):
         count = 0
+        vorlagen_template = "Vorlage: SV-"
+        first_length = len(vorlagen_template)
+        second_length = len("Vorlage: ")
+
         for top in tops:
             count = count + 1
             vorlnr = ""
@@ -182,29 +200,31 @@ class RubinScraper(object):
             jahr = ""
             if '[Vorlage: ' in top[4]:
                 if '[Vorlage: SV-' in top[4]:
-                    jahr = top[4][len("Vorlage: SV-") + 1:len("Vorlage: SV-") + 5]
-                    vorlnr = top[4][
-                             len("Vorlage: SV-") + 6:len("Vorlage: SV-") + 10]
+                    jahr = top[4][first_length + 1:first_length + 5]
+                    vorlnr = top[4][first_length + 6:first_length + 10]
                 else:
-                    jahr = top[4][len("Vorlage: ") + 1:len("Vorlage: ") + 5]
-                    vorlnr = top[4][len("Vorlage: ") + 6:len("Vorlage: ") + 10]
+                    jahr = top[4][second_length + 1:second_length + 5]
+                    vorlnr = top[4][second_length + 6:second_length + 10]
                 gesamtID = top[4][10:top[4].index(',')]
 
             tab = self.db['agenda']
             attachment_link = top[6]
-            tab.insert(
-                dict(sid=sid, status=top[0], topnumber=top[1], column3=top[2], details_link=top[3], title_full=top[4],
-                     document_link=top[
-                         5], attachment_link=attachment_link, decision_link=top[7], column9=top[8], column10=top[9],
-                     year=jahr,
-                     billnumber=vorlnr, billid=gesamtID, position=count))
+            tab.insert({'sid': sid, 'status': top[0], 'topnumber': top[1],
+                        'column3': top[2], 'details_link': top[3],
+                        'title_full': top[4], 'document_link': top[5],
+                        'attachment_link': attachment_link,
+                        'decision_link': top[7], 'column9': top[8],
+                        'column10': top[9], 'year': jahr, 'billnumber': vorlnr,
+                        'billid': gesamtID, 'position': count})
+
             if "http://" in attachment_link:
                 self.scrapeAttachmentsPage(sid, gesamtID, attachment_link)
 
 
 if __name__ == '__main__':
+    sessionFinder = SessionFinder(2006)
     scraper = RubinScraper('sqlite:///darmstadt.db')
-    scraper.scrape()
+    scraper.scrape(sessionFinder)
 
     rest = scraper.db['sessions'].all()
     dataset.freeze(rest, format='json', filename='da-sessions.json')
