@@ -24,8 +24,9 @@ class Form(object):
 
 
 class RubinScraper(object):
-    def __init__(self, db_connection_string, domain='darmstadt'):
+    def __init__(self, db_connection_string, domain='darmstadt', year=2006):
         self.base_url = 'http://{}.more-rubin1.de/'.format(domain)
+        self.year = year
 
         self.db = dataset.connect(db_connection_string)
         t_lastaccess = self.db['updates']
@@ -77,9 +78,8 @@ class RubinScraper(object):
                 dict(sid=sessionID, agenda_item_id=agenda_item_id, attachment_title=title, attachment_file_url=url))
 
     def getSIDsOfMeetings(self):
-        # TODO: the dates should be automatically generated
-        scrape_from = '01.01.2006'
-        scrape_to = '31.01.2006'
+        scrape_from = '01.01.{}'.format(self.year)
+        scrape_to = '31.01.{}'.format(self.year)
 
         url = urljoin(self.base_url, 'recherche.php')
         params = {'suchbegriffe': '', 'select_gremium': '',
