@@ -36,7 +36,6 @@ class RubinScraper(object):
             self.getSession(sid)
 
     def hasWebsiteChanged(self):
-
         html = requests.get(self.base_url).text
         psoup = BeautifulSoup(html)
         text = psoup.find('div', {'class': 'aktualisierung'}).get_text()
@@ -52,7 +51,6 @@ class RubinScraper(object):
         if datetime.datetime.strptime(db_datetime[:16], "%Y-%m-%d %H:%M") < websitedatetime:
             return True
         return False
-
 
     def scrapeAttachmentsPage(self, sessionID, agenda_item_id, attachmentsPageURL):
         print("scrape Attachment " + attachmentsPageURL)
@@ -77,7 +75,6 @@ class RubinScraper(object):
             tab = self.db['attachments']
             tab.insert(
                 dict(sid=sessionID, agenda_item_id=agenda_item_id, attachment_title=title, attachment_file_url=url))
-
 
     def getSIDsOfMeetings(self):
         # TODO: the dates should be automatically generated
@@ -109,7 +106,6 @@ class RubinScraper(object):
                     entry = entry + 1
                     notempty = notempty + 1
                     yield sid
-
 
     def getSession(self, sid):
         if not sid:
@@ -157,7 +153,7 @@ class RubinScraper(object):
         for TRs in table.find_all('tr'):
             row = list()
             for TDs in TRs.find_all('td'):
-                if TDs.form != None:
+                if TDs.form is not None:
                     url = self.extractHiddenFormURL(TDs)
                     row.append(url)
                 else:
