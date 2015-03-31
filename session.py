@@ -32,11 +32,8 @@ class SessionFinder(object):
 
     def __iter__(self):
         def iterator():
-            sessions = set()
             for session in self.getSIDsOfMeetings():
-                if session not in sessions:
-                    sessions.add(session)
-                    yield session
+                yield session
 
         return iterator()
 
