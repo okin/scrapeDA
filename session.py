@@ -221,17 +221,21 @@ class RubinScraper(object):
                 self.scrapeAttachmentsPage(sid, gesamtID, attachment_link)
 
 
+def exportFromDatabase(database):
+    rest = database['sessions'].all()
+    dataset.freeze(rest, format='json', filename='da-sessions.json')
+    rest = database['sessions'].all()
+    dataset.freeze(rest, format='csv', filename='da-sessions.csv')
+
+    rest = database['agenda'].all()
+    dataset.freeze(rest, format='json', filename='da-agenda.json')
+    rest = database['agenda'].all()
+    dataset.freeze(rest, format='csv', filename='da-agenda.csv')
+
+
 if __name__ == '__main__':
     sessionFinder = SessionFinder(2006)
     scraper = RubinScraper('sqlite:///darmstadt.db')
     scraper.scrape(sessionFinder)
 
-    rest = scraper.db['sessions'].all()
-    dataset.freeze(rest, format='json', filename='da-sessions.json')
-    rest = scraper.db['sessions'].all()
-    dataset.freeze(rest, format='csv', filename='da-sessions.csv')
-
-    rest = scraper.db['agenda'].all()
-    dataset.freeze(rest, format='json', filename='da-agenda.json')
-    rest = scraper.db['agenda'].all()
-    dataset.freeze(rest, format='csv', filename='da-agenda.csv')
+    exportFromDatabase(scraper.db)
