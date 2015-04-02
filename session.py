@@ -26,18 +26,18 @@ class Form(object):
 class SessionFinder(object):
     """Find possible sessions."""
 
-    def __init__(self, year, domain='darmstadt'):
+    def __init__(self, year, domain):
         self.year = year
         self.base_url = 'http://{}.more-rubin1.de/'.format(domain)
 
     def __iter__(self):
         def iterator():
-            for session in self.getSIDsOfMeetings():
+            for session in self.get_meetings():
                 yield session
 
         return iterator()
 
-    def getSIDsOfMeetings(self):
+    def get_meetings(self):
         scrape_from = '01.01.{}'.format(self.year)
         scrape_to = '31.01.{}'.format(self.year)
 
@@ -46,26 +46,27 @@ class SessionFinder(object):
                   'datum_von': scrape_from, 'datum_bis': scrape_to,
                   'startsuche': 'Suche+starten'}
 
-        entry = 0  # set for first run
-        SIDs = set()
-        notempty = 1
-        while notempty > 0:
+        i = 0
+        meeting_ids = set()
+        exhausted = False
+        while not exhausted:
             # prevent infinite loop
-            notempty = 0
-            params['entry'] = entry - 1
-            site_content = requests.get(url, params=params).text
-            table = BeautifulSoup(site_content).find('table', {"width": "100%"})
+            params['entry'] = len(meeting_ids)
+            content = requests.get(url, params=params).text
+            table = BeautifulSoup(content).find('table', {"width": "100%"})
 
-            for inputs in table.find_all('input', {"name": "sid"}):
-                sid = inputs["value"]
-                if not sid:
-                    continue
-
-                if sid not in SIDs:
-                    SIDs.add(inputs["value"])
-                    entry = entry + 1
-                    notempty = notempty + 1
-                    yield sid
+            tags = table.find_all('input', {'name': 'sid'})
+            if tags:
+                for tag in tags:
+                    meeting_id = tag['value']
+                    if not meeting_id:
+                        continue
+                    if meeting_id not in meeting_ids:
+                        meeting_ids.add(meeting_id)
+                        i += 1
+                        yield meeting_id
+            else:
+                exhausted = True
 
 
 class RubinScraper(object):
@@ -229,7 +230,7 @@ if __name__ == '__main__':
     database['updates'].insert({'scraped_at': datetime.datetime.now()})
 
     scraper = RubinScraper()
-    for sessionID in SessionFinder(2006):
+    for sessionID in SessionFinder(2006, 'darmstadt'):
         if not sessionID:
             continue
         print(sessionID)
