@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # scrapeDA - Scraping the city council information system.
-# Copyright (C) 2015 Makus Drenger, Niko Wenselowski, Martin Weinelt
+# Copyright (C) 2015 Markus Drenger, Niko Wenselowski, Martin Weinelt
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
