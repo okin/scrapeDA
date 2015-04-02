@@ -14,7 +14,7 @@ def test_parsing_top():
     )
 
     scraper = RubinScraper('darmstadt')
-    tops = list(scraper.getTOPs(sid))
+    tops = list(scraper.get_toc(sid))
 
     assert len(tops) == 5
 
