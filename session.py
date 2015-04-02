@@ -173,17 +173,14 @@ class RubinScraper(object):
         return meeting
 
     def get_toc(self, session_id):
-        url = urljoin(self.base_url, "sitzungen_top.php")
-        site_content = requests.get(url, params={"sid": session_id}).text
-        soup = BeautifulSoup(site_content)
+        url = urljoin(self.base_url, 'sitzungen_top.php')
+        html = requests.get(url, params={"sid": session_id}).text
+        soup = BeautifulSoup(html)
 
-        for table in soup.find_all('table'):
-            tr = int(len(table.find_all('tr')))
-            td = int(len(table.find_all('td')))
-            if td > 9 * tr:
-                tops = self.parse_table(table)
-                for top in self.parse_toc(session_id, tops):
-                    yield top
+        table = soup.find('div', {'id': 'ajax_sitzungsmappe'}).table
+        toc = self.parse_table(table)
+        for entry in self.parse_toc(session_id, toc):
+            yield entry
 
     def parse_table(self, table):
         values = []
