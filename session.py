@@ -1,14 +1,19 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import datetime
+import locale
+import re
+import sys
 
 import dataset
 import requests
 import sqlalchemy
 from bs4 import BeautifulSoup
+from datetime import datetime
 from requests.compat import urljoin
 
+
+locale.setlocale(locale.LC_ALL, 'de_DE.UTF-8')
 
 COMMITTEES = set([
     'AEA',  # Akteneinsichtsausschuss
@@ -98,43 +103,58 @@ class RubinScraper(object):
 
     def has_website_changed(self, since):
         html = requests.get(self.base_url).text
-        psoup = BeautifulSoup(html)
-        text = psoup.find('div', {'class': 'aktualisierung'}).get_text()
+        soup = BeautifulSoup(html)
+        text = soup.find('div', {'class': 'aktualisierung'}).get_text()
         last_website_update = text[len('Letzte Aktualisierung am:'):]
-        websitedatetime = datetime.datetime.strptime(last_website_update, "%d.%m.%Y, %H:%M")
+        websitedatetime = datetime.strptime(last_website_update, "%d.%m.%Y, %H:%M")
         if since is None:
             return True
-        if datetime.datetime.strptime(since[:16], "%Y-%m-%d %H:%M") < websitedatetime:
+        if datetime.strptime(since[:16], "%Y-%m-%d %H:%M") < websitedatetime:
             return True
         return False
 
-    def get_metadata(self, sid):
-        url = urljoin(self.base_url, "sitzungen_top.php")
-        site_content = requests.get(url, params={"sid": sid}).text
-        soup = BeautifulSoup(site_content)
+    def get_metadata(self, meeting_id):
+        url = urljoin(self.base_url, 'sitzungen_top.php')
+        html = requests.get(url, params={"sid": meeting_id}).text
+        soup = BeautifulSoup(html)
 
-        session = {'sid': sid, 'title': soup.find('b', {'class': 'Suchueberschrift'}).get_text()}
-        # METADATEN
+        meeting = {'sid': meeting_id, 'title': soup.find('b', {'class': 'Suchueberschrift'}).get_text()}
+
         table = soup.find('div', {'class': 'InfoBlock'}).find('table')
-        values = self.parse_table(table)
 
-        for row in values:
-            if row[0] == "Termin: ":
-                datum = row[1]
-                if len(datum) == len("29.11.2006, 15:00 Uhr - 15:45 Uhr"):
-                    beginn = datetime.datetime.strptime(datum[:10]+" "+datum[12:17], "%d.%m.%Y %H:%M")
-                    ende = datetime.datetime.strptime(datum[:10]+" "+datum[24:29], "%d.%m.%Y %H:%M")
-                    delta = ende - beginn
-                    session['start'] = str(beginn)
-                    session['end'] = str(ende)
-                    session['date'] = datum[0:10]
-                    session['duration'] = str(delta.seconds / 60)
-            elif row[0] == "Raum: ":
-                session['location'] = str(row[1])
-            elif row[0] == "Gremien: ":
-                session['body'] = str(row[1])
+        pattern_dt = '(?P<day>\d{2})\.(?P<month>\d{2})\.(?P<year>\d{4}),\s(?P<from_h>\d{2}):(?P<from_m>\d{2})\sUhr\s-\s(?P<until_h>\d{2}):(?P<until_m>\d{2})\sUhr'
 
-        return session
+        for tr in table.find_all('tr'):
+            td = tr.find_all('td')
+            if not td:
+                continue
+            try:
+                key = td[0].get_text().strip()
+                value = td[1].get_text().strip()
+            except IndexError:
+                continue
+
+            if key == 'Termin:':
+                result = re.search(pattern_dt, value)
+                if result:
+                    begin = datetime(int(result.group('year')), int(result.group('month')), int(result.group('day')),
+                                     int(result.group('from_h')), int(result.group('from_m')))
+                    end = datetime(int(result.group('year')), int(result.group('month')), int(result.group('day')),
+                                   int(result.group('until_h')), int(result.group('until_m')))
+                    duration = end - begin
+
+                    meeting['begin'] = str(begin)
+                    meeting['end'] = str(end)
+                    meeting['duration'] = str(int(duration.seconds / 60))
+                else:
+                    print('Unparseable date/time info in meeting {}: "{}"'.format(meeting_id, value),
+                          file=sys.stderr)
+            elif key == 'Raum:':
+                meeting['location'] = value
+            elif key == 'Gremien:':
+                meeting['body'] = value
+
+        return meeting
 
     def get_toc(self, session_id):
         url = urljoin(self.base_url, "sitzungen_top.php")
@@ -249,7 +269,7 @@ if __name__ == '__main__':
     database = dataset.connect('sqlite:///darmstadt.db')
     t_lastaccess = database['updates']
     t_lastaccess.create_column('scraped_at', sqlalchemy.DateTime)
-    database['updates'].insert({'scraped_at': datetime.datetime.now()})
+    database['updates'].insert({'scraped_at': datetime.now()})
 
     scraper = RubinScraper()
     for sessionID in SessionFinder(2006, 'darmstadt'):
