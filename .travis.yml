@@ -1,0 +1,13 @@
+language: python
+python:
+  - "3.3"
+  - "3.4"
+install: 
+  - "pip install -r requirements.txt"
+  - "pip install -r requirements-test.txt"
+  - "pip install pep8"
+  
+script: 
+  - "pep8 --ignore=E501 session.py"
+  - "py.test tests.py"
+
