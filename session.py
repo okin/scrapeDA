@@ -32,6 +32,7 @@ COMMITTEES = set([
     'WahlA',  # Wahlvorbereitungsausschuss
 ])
 
+
 class Form(object):
     def __init__(self, action, values=None):
         self.action = action
