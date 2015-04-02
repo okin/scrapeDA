@@ -10,6 +10,28 @@ from bs4 import BeautifulSoup
 from requests.compat import urljoin
 
 
+COMMITTEES = set([
+    'AEA',  # Akteneinsichtsausschuss
+    'AER',  # Ältestenrat
+    'Bau',  # Ausschuss für Bauen, Stadtplanung, Verkehr und Liegenschaften
+    'Schul',  # Ausschuss für Bildung und Schule
+    'SportA',  # Ausschuss für Familie, Kinderbetreuung und Sport bis 30.09.2011
+    'GleichA',  # Ausschuss für Gleichstellung und interkulturelle Fragen bis 30.09.2011
+    'LiegenA',  # Ausschuss für Liegenschaften und Wirtschaftsförderung bis 30.09.2011
+    'SozialA',  # Ausschuss für Soziales (einschl. Gleichstellung, Interkulturelles, Familie und Kinderbetreuung)
+    'Sport',  # Ausschuss für Sport und Gesundheit (einschl. öffentliche Einrichtungen und Ordnungswesen)
+    'UmweltA',  # Ausschuss für Umweltschutz und Nachhaltigkeit
+    'Wifoe',  # Ausschuss für Wirtschaftsförderung und Wissenschaft
+    'HFA',  # Haupt- und Finanzausschuss (einschl. Recht, Stellenplan und Beteiligungen)
+    'JHA',  # Jugendhilfeausschuss
+    'KulturA',  # Kulturausschuss
+    'Mag',  # Magistrat der Stadt Darmstadt
+    'OBW',  # Ortsbeirat Darmstadt-Wixhausen
+    'BauA',  # Planungs-, Bau- und Verkehrsausschuss bis 30.09.2011
+    'Stavo',  # Stadtverordnetenversammlung
+    'WahlA',  # Wahlvorbereitungsausschuss
+])
+
 class Form(object):
     def __init__(self, action, values=None):
         self.action = action
