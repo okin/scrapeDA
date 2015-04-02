@@ -95,7 +95,7 @@ class RubinScraper(object):
     def __init__(self, domain='darmstadt'):
         self.base_url = 'http://{}.more-rubin1.de/'.format(domain)
 
-    def hasWebsiteChanged(self, since):
+    def has_website_changed(self, since):
         html = requests.get(self.base_url).text
         psoup = BeautifulSoup(html)
         text = psoup.find('div', {'class': 'aktualisierung'}).get_text()
@@ -107,41 +107,15 @@ class RubinScraper(object):
             return True
         return False
 
-    def scrapeAttachmentsPage(self, sessionID, agenda_item_id, attachmentsPageURL):
-        print("scrape Attachment " + attachmentsPageURL)
-        html = requests.get(attachmentsPageURL).text
-        soup = BeautifulSoup(html)
-        txt = soup.get_text()
-
-        if "Auf die Anlage konnte nicht zugegriffen werden oder Sie existiert nicht mehr." in txt:
-            print("Zu TOP " + agenda_item_id + " fehlt mindestens eine Anlage")
-            yield ('404', {'agenda_item_id': agenda_item_id,
-                           'attachmentsPageURL': attachmentsPageURL})
-        else:
-            for forms in soup.find_all('form'):
-                title = forms.get_text()
-                values = []
-                for val in forms.find_all('input', {'type': 'hidden'}):
-                    values.append([val['name'], val['value']])
-
-                form = Form(forms['action'], values)
-                url = self.base_url + form.toURL()
-
-                yield ('OK', {'sid': sessionID,
-                              'agenda_item_id': agenda_item_id,
-                              'attachment_title': title,
-                              'attachment_file_url': url})
-
-    def getMetadata(self, sid):
+    def get_metadata(self, sid):
         url = urljoin(self.base_url, "sitzungen_top.php")
         site_content = requests.get(url, params={"sid": sid}).text
         soup = BeautifulSoup(site_content)
 
-        session = {'sid': sid}
-        session['title'] = soup.find('b', {'class': 'Suchueberschrift'}).get_text()
+        session = {'sid': sid, 'title': soup.find('b', {'class': 'Suchueberschrift'}).get_text()}
         # METADATEN
         table = soup.find('div', {'class': 'InfoBlock'}).find('table')
-        values = self.parseTable(table)
+        values = self.parse_table(table)
 
         for row in values:
             if row[0] == "Termin: ":
@@ -161,33 +135,33 @@ class RubinScraper(object):
 
         return session
 
-    def getTOPs(self, session_id):
+    def get_toc(self, session_id):
         url = urljoin(self.base_url, "sitzungen_top.php")
         site_content = requests.get(url, params={"sid": session_id}).text
         soup = BeautifulSoup(site_content)
 
-        for tab in soup.find_all('table'):
-            tr = int(len(tab.find_all('tr')))
-            td = int(len(tab.find_all('td')))
+        for table in soup.find_all('table'):
+            tr = int(len(table.find_all('tr')))
+            td = int(len(table.find_all('td')))
             if td > 9 * tr:
-                tops = self.parseTable(tab)
-                for top in self.parseTOPs(session_id, tops):
+                tops = self.parse_table(table)
+                for top in self.parse_toc(session_id, tops):
                     yield top
 
-    def parseTable(self, table):
+    def parse_table(self, table):
         values = []
         for TRs in table.find_all('tr'):
             row = []
             for TDs in TRs.find_all('td'):
                 if TDs.form is not None:
-                    url = self.extractHiddenFormURL(TDs)
+                    url = self.get_url_from_form(TDs)
                     row.append(url)
                 else:
                     row.append(TDs.get_text())
             values.append(row)
         return values
 
-    def extractHiddenFormURL(self, td):
+    def get_url_from_form(self, td):
         form = Form(td.form['action'])
 
         for tag in td.form.find_all('input', {'type': 'hidden'}):
@@ -195,16 +169,16 @@ class RubinScraper(object):
 
         return urljoin(self.base_url, form.toURL())
 
-    def parseTOPs(self, sid, tops):
+    def parse_toc(self, sid, tops):
         count = 0
         vorlagen_template = "Vorlage: SV-"
         first_length = len(vorlagen_template)
         second_length = len("Vorlage: ")
 
         for top in tops:
-            count = count + 1
+            count += 1
             vorlnr = ""
-            gesamtID = ""
+            gesamt_id = ""
             jahr = ""
             if '[Vorlage: ' in top[4]:
                 if '[Vorlage: SV-' in top[4]:
@@ -213,7 +187,7 @@ class RubinScraper(object):
                 else:
                     jahr = top[4][second_length + 1:second_length + 5]
                     vorlnr = top[4][second_length + 6:second_length + 10]
-                gesamtID = top[4][10:top[4].index(',')]
+                gesamt_id = top[4][10:top[4].index(',')]
 
             attachment_link = top[6]
             yield {'sid': sid, 'status': top[0], 'topnumber': top[1],
@@ -222,10 +196,35 @@ class RubinScraper(object):
                    'attachment_link': attachment_link,
                    'decision_link': top[7], 'column9': top[8],
                    'column10': top[9], 'year': jahr, 'billnumber': vorlnr,
-                   'billid': gesamtID, 'position': count}
+                   'billid': gesamt_id, 'position': count}
+
+    def scrape_attachments_page(self, session_id, agenda_item_id, attachments_page_url):
+        print("scrape Attachment " + attachments_page_url)
+        html = requests.get(attachments_page_url).text
+        soup = BeautifulSoup(html)
+        txt = soup.get_text()
+
+        if "Auf die Anlage konnte nicht zugegriffen werden oder Sie existiert nicht mehr." in txt:
+            print("Zu TOP " + agenda_item_id + " fehlt mindestens eine Anlage")
+            yield ('404', {'agenda_item_id': agenda_item_id,
+                           'attachmentsPageURL': attachments_page_url})
+        else:
+            for forms in soup.find_all('form'):
+                title = forms.get_text()
+                values = []
+                for val in forms.find_all('input', {'type': 'hidden'}):
+                    values.append([val['name'], val['value']])
+
+                form = Form(forms['action'], values)
+                url = self.base_url + form.toURL()
+
+                yield ('OK', {'sid': session_id,
+                              'agenda_item_id': agenda_item_id,
+                              'attachment_title': title,
+                              'attachment_file_url': url})
 
 
-def exportFromDatabase(database):
+def export_from_db(database):
     rest = database['sessions'].all()
     dataset.freeze(rest, format='json', filename='da-sessions.json')
     rest = database['sessions'].all()
@@ -237,7 +236,7 @@ def exportFromDatabase(database):
     dataset.freeze(rest, format='csv', filename='da-agenda.csv')
 
 
-def getScrapingTime(database):
+def get_scraping_time(database):
     db_datetime = ""
     query = database.query("SELECT max(scraped_at) as lastaccess from updates")
     for row in query:
@@ -257,7 +256,7 @@ if __name__ == '__main__':
             continue
         print(sessionID)
 
-        metadata = scraper.getMetadata(sessionID)
+        metadata = scraper.get_metadata(sessionID)
 
         t_sessions = database['sessions']
         t_sessions.insert(metadata)
@@ -266,14 +265,14 @@ if __name__ == '__main__':
         errortable = database['404attachments']
         attachments = database['attachments']
 
-        for top in scraper.getTOPs(sessionID):
+        for top in scraper.get_toc(sessionID):
             tab.insert(top)
 
             if "http://" in top['attachment_link']:
-                for (code, attachment) in scraper.scrapeAttachmentsPage(sessionID, top['billid'], top['attachment_link']):
+                for (code, attachment) in scraper.scrape_attachments_page(sessionID, top['billid'], top['attachment_link']):
                     if code == '404':
                         errortable.insert(attachment)
                     elif code == 'OK':
                         attachments.insert(attachment)
 
-    exportFromDatabase(database)
+    export_from_db(database)
