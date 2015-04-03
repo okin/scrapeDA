@@ -29,7 +29,11 @@ from datetime import datetime
 from requests.compat import urljoin
 
 
-locale.setlocale(locale.LC_ALL, 'de_DE.UTF-8')
+try:
+    locale.setlocale(locale.LC_ALL, 'de_DE.UTF-8')
+except locale.Error:
+    print("Setting the required german locale failed. Please install!")
+    raise
 
 COMMITTEES = set([
     'AEA',  # Akteneinsichtsausschuss
