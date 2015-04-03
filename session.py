@@ -71,7 +71,7 @@ class Form(object):
         return "{}?{}".format(self.action, '&'.join(parameters))
 
 
-class SessionFinder(object):
+class MeetingFinder(object):
     """Find possible sessions."""
 
     def __init__(self, year, domain):
@@ -98,7 +98,6 @@ class SessionFinder(object):
         meeting_ids = set()
         exhausted = False
         while not exhausted:
-            # prevent infinite loop
             params['entry'] = len(meeting_ids)
             content = requests.get(url, params=params).text
             table = BeautifulSoup(content).find('table', {"width": "100%"})
@@ -124,6 +123,7 @@ class RubinScraper(object):
     def has_website_changed(self, since):
         html = requests.get(self.base_url).text
         soup = BeautifulSoup(html)
+
         text = soup.find('div', {'class': 'aktualisierung'}).get_text()
         last_website_update = text[len('Letzte Aktualisierung am:'):]
         websitedatetime = datetime.strptime(last_website_update, "%d.%m.%Y, %H:%M")
@@ -207,33 +207,33 @@ class RubinScraper(object):
 
         return urljoin(self.base_url, form.toURL())
 
-    def parse_toc(self, sid, tops):
+    def parse_toc(self, meeting_id, toc):
         count = 0
         vorlagen_template = "Vorlage: SV-"
         first_length = len(vorlagen_template)
         second_length = len("Vorlage: ")
 
-        for top in tops:
+        for entry in toc:
             count += 1
             vorlnr = ""
             gesamt_id = ""
             jahr = ""
-            if '[Vorlage: ' in top[4]:
-                if '[Vorlage: SV-' in top[4]:
-                    jahr = top[4][first_length + 1:first_length + 5]
-                    vorlnr = top[4][first_length + 6:first_length + 10]
+            if '[Vorlage: ' in entry[4]:
+                if '[Vorlage: SV-' in entry[4]:
+                    jahr = entry[4][first_length + 1:first_length + 5]
+                    vorlnr = entry[4][first_length + 6:first_length + 10]
                 else:
-                    jahr = top[4][second_length + 1:second_length + 5]
-                    vorlnr = top[4][second_length + 6:second_length + 10]
-                gesamt_id = top[4][10:top[4].index(',')]
+                    jahr = entry[4][second_length + 1:second_length + 5]
+                    vorlnr = entry[4][second_length + 6:second_length + 10]
+                gesamt_id = entry[4][10:entry[4].index(',')]
 
-            attachment_link = top[6]
-            yield {'sid': sid, 'status': top[0], 'topnumber': top[1],
-                   'column3': top[2], 'details_link': top[3],
-                   'title_full': top[4], 'document_link': top[5],
+            attachment_link = entry[6]
+            yield {'sid': meeting_id, 'status': entry[0], 'topnumber': entry[1],
+                   'column3': entry[2], 'details_link': entry[3],
+                   'title_full': entry[4], 'document_link': entry[5],
                    'attachment_link': attachment_link,
-                   'decision_link': top[7], 'column9': top[8],
-                   'column10': top[9], 'year': jahr, 'billnumber': vorlnr,
+                   'decision_link': entry[7], 'column9': entry[8],
+                   'column10': entry[9], 'year': jahr, 'billnumber': vorlnr,
                    'billid': gesamt_id, 'position': count}
 
     def scrape_attachments_page(self, session_id, agenda_item_id, attachments_page_url):
@@ -289,12 +289,12 @@ if __name__ == '__main__':
     database['updates'].insert({'scraped_at': datetime.now()})
 
     scraper = RubinScraper()
-    for sessionID in SessionFinder(2006, 'darmstadt'):
-        if not sessionID:
+    for meeting_id in MeetingFinder(2006, 'darmstadt'):
+        if not meeting_id:
             continue
-        print(sessionID)
+        print(meeting_id)
 
-        metadata = scraper.get_metadata(sessionID)
+        metadata = scraper.get_metadata(meeting_id)
 
         t_sessions = database['sessions']
         t_sessions.insert(metadata)
@@ -303,11 +303,12 @@ if __name__ == '__main__':
         errortable = database['404attachments']
         attachments = database['attachments']
 
-        for top in scraper.get_toc(sessionID):
-            tab.insert(top)
+        for entry in scraper.get_toc(meeting_id):
+            tab.insert(entry)
 
-            if "http://" in top['attachment_link']:
-                for (code, attachment) in scraper.scrape_attachments_page(sessionID, top['billid'], top['attachment_link']):
+            if "http://" in entry['attachment_link']:
+                for (code, attachment) in scraper.scrape_attachments_page(meeting_id, entry['billid'],
+                                                                          entry['attachment_link']):
                     if code == '404':
                         errortable.insert(attachment)
                     elif code == 'OK':
